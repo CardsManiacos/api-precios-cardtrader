@@ -1,3 +1,4 @@
+
 const express = require("express");
 const puppeteer = require("puppeteer");
 const app = express();
@@ -6,8 +7,8 @@ function normalizar(texto) {
   return texto
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")    // elimina tildes
-    .replace(/[\u2019']/g, "-s-")       // reemplaza apóstrofes por '-s-'
+    .replace(/[̀-ͯ]/g, "")    // elimina tildes
+    .replace(/[’']/g, "-s-")       // reemplaza apóstrofes por '-s-'
     .replace(/,/g, "")                  // elimina comas
     .replace(/\s+/g, "-")               // reemplaza espacios por guiones
     .trim();
@@ -25,7 +26,10 @@ app.get("/precioCT0", async (req, res) => {
   const url = `https://www.cardtrader.com/en/cards/${nombreFormateado}-${expansionFormateada}`;
 
   try {
-    const browser = await puppeteer.launch({ headless: "new" });
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: true
+    });
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: "networkidle2" });
     await page.waitForTimeout(2500);
