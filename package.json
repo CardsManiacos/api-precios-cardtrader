@@ -1,17 +1,14 @@
 {
-  "name": "api-precios-cardtrader",
+  "name": "api-precios-cardtrader-lite",
   "version": "1.0.0",
-  "description": "API para obtener precios de CardTrader para usar en Google Sheets / Excel",
+  "description": "API ligera para obtener precios de CardTrader usando puppeteer-core en Render",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "puppeteer": "^21.3.8"
-  },
-  "puppeteer": {
-    "skip_chromium_download": true
+    "puppeteer-core": "^21.3.8"
   },
   "engines": {
     "node": ">=16.0.0"

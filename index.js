@@ -1,53 +1,55 @@
-
-const express = require("express");
-const puppeteer = require("puppeteer");
+const express = require('express');
+const puppeteer = require('puppeteer-core');
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 function normalizar(texto) {
   return texto
     .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")    // elimina tildes
-    .replace(/[’']/g, "-s-")       // reemplaza apóstrofes por '-s-'
-    .replace(/,/g, "")                  // elimina comas
-    .replace(/\s+/g, "-")               // reemplaza espacios por guiones
-    .trim();
+    .replace(/[’']/g, '-s-')
+    .replace(/,/g, '')
+    .replace(/\s+/g, '-')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
-app.get("/precioCT0", async (req, res) => {
-  let { carta, expansion } = req.query;
+app.get('/precioCT0', async (req, res) => {
+  const carta = req.query.carta;
+  const expansion = req.query.expansion;
 
   if (!carta || !expansion) {
-    return res.status(400).json({ error: "Faltan parámetros" });
+    return res.status(400).json({ error: 'Faltan parámetros: carta y expansion' });
   }
 
-  const nombreFormateado = normalizar(carta);
-  const expansionFormateada = normalizar(expansion);
-  const url = `https://www.cardtrader.com/en/cards/${nombreFormateado}-${expansionFormateada}`;
+  const cartaSlug = normalizar(carta);
+  const expansionSlug = normalizar(expansion);
+  const url = `https://www.cardtrader.com/en/cards/${cartaSlug}-${expansionSlug}`;
 
   try {
     const browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      headless: true
+      executablePath: '/usr/bin/chromium-browser',
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
+
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: "networkidle2" });
-    await page.waitForTimeout(2500);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
     const precio = await page.evaluate(() => {
-      const span = document.querySelector("span.best-deal.my-2");
-      if (!span) return "CT0 no encontrado";
-
-      const text = span.textContent.replace("€", "").replace(",", ".").trim();
-      return text || "CT0 no encontrado";
+      const row = document.querySelector('table tbody tr');
+      return row ? row.querySelector('td span')?.textContent?.trim() : null;
     });
 
     await browser.close();
-    res.json({ carta, expansion, precio });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+
+    if (!precio) {
+      return res.status(404).json({ error: 'Precio no encontrado', carta, expansion });
+    }
+
+    return res.json({ carta, expansion, precio });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Servidor corriendo en puerto " + PORT));
+app.listen(PORT, () => {
+  console.log(`Servidor funcionando en el puerto ${PORT}`);
+});
